@@ -1,0 +1,45 @@
+name: Auto Race Condition Exploit Respond
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  race-response:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exploit Race Condition via Mass Respond
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.issue.number;
+            const issueAuthor = context.payload.issue.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const commentTemplate = `Terima kasih atas kontribusi Anda, @${issueAuthor}. Permintaan Anda sedang diproses.`;
+
+            // Kirim banyak komentar secara paralel (simulasi race condition)
+            const comments = Array.from({ length: 10 }, (_, i) => {
+              return github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `${commentTemplate} [respond ke-${i + 1}]`
+              });
+            });
+
+            // Tambahkan hanya 1 label tetap: race-condition
+            const label = github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              labels: ['race-condition']
+            });
+
+            // Jalankan komentar dan label bersamaan
+            await Promise.all([...comments, label]);
